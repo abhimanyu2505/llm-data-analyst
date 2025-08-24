@@ -3,3 +3,4 @@ requests
 streamlit
 openpyxl
 plotly
+mysql-connector-python

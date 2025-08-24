@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from data_analyst_optimized import DataAnalystAssistant
+from data_analyst_mysql import DataAnalystAssistant
 from enhanced_visualizer import EnhancedVisualizer
 import os
 
@@ -73,12 +73,29 @@ with st.sidebar:
     # Ollama URL
     ollama_url = st.text_input("Ollama URL", value="http://localhost:11434")
     
-    if st.button("Initialize Assistant") and not st.session_state.assistant:
-        try:
-            st.session_state.assistant = DataAnalystAssistant(ollama_url)
-            st.success("Assistant initialized!")
-        except Exception as e:
-            st.error(f"Failed to connect to Ollama: {str(e)}")
+    st.subheader("MySQL Database")
+    mysql_host = st.text_input("MySQL Host", value="localhost")
+    mysql_port = st.number_input("MySQL Port", value=3306)
+    mysql_user = st.text_input("MySQL Username")
+    mysql_password = st.text_input("MySQL Password", type="password")
+    mysql_database = st.text_input("MySQL Database Name")
+    
+    if st.button("Connect to MySQL") and not st.session_state.assistant:
+        if not all([mysql_host, mysql_user, mysql_password, mysql_database]):
+            st.error("Please fill in all MySQL credentials")
+        else:
+            try:
+                mysql_config = {
+                    'host': mysql_host,
+                    'port': int(mysql_port),
+                    'user': mysql_user,
+                    'password': mysql_password,
+                    'database': mysql_database
+                }
+                st.session_state.assistant = DataAnalystAssistant(ollama_url, mysql_config)
+                st.success("Connected to MySQL and initialized assistant!")
+            except Exception as e:
+                st.error(f"Failed to connect: {str(e)}")
     
     st.header("Upload Data")
     
@@ -135,6 +152,9 @@ if st.session_state.assistant:
                 if 'results' in chat and chat['results']:
                     results_df = pd.DataFrame(chat['results'])
                     
+                    # Show table results right after insights
+                    st.dataframe(results_df)
+                    
                     # Clean data summary
                     data_summary = st.session_state.visualizer.get_chart_summary(results_df)
                     st.info(data_summary)
@@ -171,10 +191,8 @@ if st.session_state.assistant:
                     )
                     st.success(viz_explanation)
                 
-                with st.expander("View SQL Query & Results"):
+                with st.expander("View SQL Query"):
                     st.code(chat['sql_query'], language='sql')
-                    if chat['results']:
-                        st.dataframe(pd.DataFrame(chat['results']))
             else:
                 st.error(chat['error'])
     
@@ -196,6 +214,9 @@ if st.session_state.assistant:
                     # Add visualization if possible
                     if 'results' in result and result['results']:
                         results_df = pd.DataFrame(result['results'])
+                        
+                        # Show table results right after insights
+                        st.dataframe(results_df)
                         
                         # Clean data summary
                         data_summary = st.session_state.visualizer.get_chart_summary(results_df)
@@ -233,12 +254,10 @@ if st.session_state.assistant:
                         )
                         st.success(viz_explanation)
                     
-                    with st.expander("View SQL Query & Results"):
+                    with st.expander("View SQL Query"):
                         st.code(result['sql_query'], language='sql')
-                        if result['results']:
-                            st.dataframe(pd.DataFrame(result['results']))
                 else:
                     st.error(result['error'])
 
 else:
-    st.warning("Please initialize the assistant in the sidebar. Make sure Ollama is running with Llama 3 model.")
+    st.warning("Please connect to MySQL database in the sidebar. Make sure Ollama is running with Llama 3 model.")
