@@ -130,11 +130,30 @@ if st.session_state.assistant:
     # Show available tables
     if st.session_state.assistant.tables:
         st.subheader("Available Tables")
-        for table_name, info in st.session_state.assistant.tables.items():
-            with st.expander(f"Table: {table_name}"):
+        
+        # Dropdown to select table
+        table_names = st.session_state.assistant.get_available_tables()
+        if table_names:
+            selected_table = st.selectbox("Select a table to view:", ["-- Select Table --"] + table_names)
+            
+            if selected_table != "-- Select Table --":
+                info = st.session_state.assistant.tables[selected_table]
+                st.write(f"**Table:** {selected_table}")
+                st.write(f"**Columns:** {', '.join(info['columns'])}")
+                st.write("**Sample data:**")
+                if info['sample_data']:
+                    st.dataframe(pd.DataFrame(info['sample_data']))
+                else:
+                    st.write("No sample data available")
+        
+        # Expandable view for all tables
+        with st.expander("View All Tables Details"):
+            for table_name, info in st.session_state.assistant.tables.items():
+                st.write(f"**{table_name}**")
                 st.write(f"Columns: {', '.join(info['columns'])}")
-                st.write("Sample data:")
-                st.json(info['sample_data'][:2])
+                if info['sample_data']:
+                    st.dataframe(pd.DataFrame(info['sample_data'][:2]))
+                st.write("---")
     
     # Chat interface
     st.subheader("Ask Questions About Your Data")
@@ -261,3 +280,12 @@ if st.session_state.assistant:
 
 else:
     st.warning("Please connect to MySQL database in the sidebar. Make sure Ollama is running with Llama 3 model.")
+    st.info("💡 **Tip:** Once connected, you can use existing tables in your database or upload new files.")
+    
+    st.markdown("""
+    ### Features:
+    - **Use Existing Tables**: Connect to see all tables in your database
+    - **Upload New Data**: Add CSV/Excel files to create new tables
+    - **Multilingual Support**: Ask questions in any language
+    - **Smart Visualizations**: Automatic charts and insights
+    """)
