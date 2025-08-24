@@ -80,7 +80,7 @@ with st.sidebar:
     mysql_password = st.text_input("MySQL Password", type="password")
     mysql_database = st.text_input("MySQL Database Name")
     
-    if st.button("Connect to MySQL") and not st.session_state.assistant:
+    if st.button("Connect to MySQL"):
         if not all([mysql_host, mysql_user, mysql_password, mysql_database]):
             st.error("Please fill in all MySQL credentials")
         else:
@@ -97,6 +97,10 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Failed to connect: {str(e)}")
     
+    if st.button("Work with Files Only") and not st.session_state.assistant:
+        st.session_state.assistant = DataAnalystAssistant(ollama_url)
+        st.success("Assistant initialized for file-only mode!")
+    
     st.header("Upload Data")
     
     # File upload
@@ -106,7 +110,11 @@ with st.sidebar:
         accept_multiple_files=True
     )
     
-    if uploaded_files and st.session_state.assistant:
+    if uploaded_files:
+        if not st.session_state.assistant:
+            st.session_state.assistant = DataAnalystAssistant(ollama_url)
+            st.info("Assistant auto-initialized for file uploads")
+        
         for file in uploaded_files:
             # Save uploaded file temporarily
             temp_path = f"temp_{file.name}"
